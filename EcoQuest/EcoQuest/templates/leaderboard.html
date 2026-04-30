@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🏆 Leaderboard</h1>
+    <p class="page-sub">Top eco-warriors making a difference</p>
+  </div>
+  <div class="my-rank-badge">
+    Your Rank: <strong>#{{ my_rank }}</strong>
+  </div>
+</div>
+
+<!-- Top 3 Podium -->
+{% if users|length >= 3 %}
+<div class="podium-wrap">
+  <div class="podium-item podium-2">
+    <div class="podium-avatar">{{ users[1].name[0] }}</div>
+    <div class="podium-name">{{ users[1].name.split()[0] }}</div>
+    <div class="podium-pts">{{ users[1].points }} pts</div>
+    <div class="podium-block p2">2</div>
+  </div>
+  <div class="podium-item podium-1">
+    <div class="crown">👑</div>
+    <div class="podium-avatar podium-av-1">{{ users[0].name[0] }}</div>
+    <div class="podium-name">{{ users[0].name.split()[0] }}</div>
+    <div class="podium-pts">{{ users[0].points }} pts</div>
+    <div class="podium-block p1">1</div>
+  </div>
+  <div class="podium-item podium-3">
+    <div class="podium-avatar">{{ users[2].name[0] }}</div>
+    <div class="podium-name">{{ users[2].name.split()[0] }}</div>
+    <div class="podium-pts">{{ users[2].points }} pts</div>
+    <div class="podium-block p3">3</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full Rankings -->
+<div class="leaderboard-list">
+  <div class="lb-header">
+    <span>Rank</span><span>Player</span><span>Level</span><span>Streak</span><span>Points</span>
+  </div>
+  {% for u in users %}
+  <div class="lb-row {% if u.is_me %}lb-me{% endif %} {% if u.rank <= 3 %}lb-top{% endif %}">
+    <div class="lb-rank">
+      {% if u.rank == 1 %}🥇
+      {% elif u.rank == 2 %}🥈
+      {% elif u.rank == 3 %}🥉
+      {% else %}#{{ u.rank }}{% endif %}
+    </div>
+    <div class="lb-player">
+      <div class="lb-avatar {% if u.rank==1 %}lba-gold{% elif u.rank==2 %}lba-silver{% elif u.rank==3 %}lba-bronze{% endif %}">
+        {{ u.name[0] }}
+      </div>
+      <div>
+        <div class="lb-name">{{ u.name }} {% if u.is_me %}<span class="you-tag">You</span>{% endif %}</div>
+      </div>
+    </div>
+    <div class="lb-level"><span class="level-pill">Lv {{ u.level }}</span></div>
+    <div class="lb-streak">🔥 {{ u.streak }}</div>
+    <div class="lb-points">⭐ {{ u.points }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

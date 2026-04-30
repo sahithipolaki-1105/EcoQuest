@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EcoQuest – {% block title %}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
+</head>
+<body>
+{% if session.user_id %}
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="brand-icon">🌍</span>
+    <span class="brand-name">EcoQuest</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint=='dashboard' %}active{% endif %}">
+      <span class="nav-icon">🏠</span><span class="nav-label">Home</span></a></li>
+    <li><a href="{{ url_for('games') }}" class="{% if request.endpoint and request.endpoint.startswith('game') %}active{% endif %}">
+      <span class="nav-icon">🎮</span><span class="nav-label">Games</span></a></li>
+    <li><a href="{{ url_for('challenges') }}" class="{% if request.endpoint=='challenges' %}active{% endif %}">
+      <span class="nav-icon">⚡</span><span class="nav-label">Challenges</span></a></li>
+    <li><a href="{{ url_for('leaderboard') }}" class="{% if request.endpoint=='leaderboard' %}active{% endif %}">
+      <span class="nav-icon">🏆</span><span class="nav-label">Leaderboard</span></a></li>
+    <li><a href="{{ url_for('rewards') }}" class="{% if request.endpoint=='rewards' %}active{% endif %}">
+      <span class="nav-icon">🎁</span><span class="nav-label">Badges</span></a></li>
+    <li><a href="{{ url_for('profile') }}" class="{% if request.endpoint=='profile' %}active{% endif %}">
+      <span class="nav-icon">👤</span><span class="nav-label">Profile</span></a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="user-avatar">{{ session.user_name[0].upper() }}</div>
+    <span class="user-name">{{ session.user_name.split()[0] }}</span>
+    <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">↩</a>
+  </div>
+  <button class="hamburger" id="hamburger">☰</button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="{{ url_for('dashboard') }}">🏠 Home</a>
+  <a href="{{ url_for('games') }}">🎮 Games</a>
+  <a href="{{ url_for('challenges') }}">⚡ Challenges</a>
+  <a href="{{ url_for('leaderboard') }}">🏆 Leaderboard</a>
+  <a href="{{ url_for('rewards') }}">🎁 Badges</a>
+  <a href="{{ url_for('profile') }}">👤 Profile</a>
+  <a href="{{ url_for('logout') }}">↩ Logout</a>
+</div>
+{% endif %}
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

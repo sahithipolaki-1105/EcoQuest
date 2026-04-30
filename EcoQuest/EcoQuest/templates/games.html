@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Games{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🎮 Eco Games</h1>
+    <p class="page-sub">Play games, save the planet, and level up!</p>
+  </div>
+  <div class="header-streak">
+    <span class="streak-flame">⭐</span>
+    <span class="streak-count">{{ level }}</span>
+    <span class="streak-label">Overall Level</span>
+  </div>
+</div>
+
+<div class="xp-card">
+  <div class="xp-header">
+    <div class="xp-level-badge">LVL {{ level }}</div>
+    <span class="xp-title">Level Progress</span>
+    <span class="xp-pct">{{ xp }}%</span>
+  </div>
+  <div class="xp-bar-track">
+    <div class="xp-bar-fill" style="width: {{ xp }}%;"></div>
+  </div>
+  <div class="xp-footer">
+    <span>Earn 200 XP to level up</span>
+    <span>{{ user.points }} XP total</span>
+  </div>
+</div>
+
+<div class="challenges-grid">
+
+  <!-- GAME 1: Memory Match -->
+  <a href="{{ url_for('game_memory_match') }}" class="ch-card" style="text-decoration: none;">
+    <div class="ch-card-top">
+      <div class="ch-big-icon">🃏</div>
+      <div class="ch-badges">
+        <span class="diff-badge diff-easy">LVL {{ progress.get('memory_match', 1) }}</span>
+      </div>
+    </div>
+    <h3 class="ch-card-title">Eco Memory Match</h3>
+    <p class="ch-card-desc">Flip cards and match pairs like Tree ↔ Oxygen to test your memory!</p>
+    <div class="ch-card-footer">
+      <span class="ch-pts-pill">+20 XP</span>
+      <button class="btn-complete-card">Play</button>
+    </div>
+  </a>
+
+  <!-- GAME 2: Waste Sorting -->
+  <a href="{{ url_for('game_waste_sort') }}" class="ch-card" style="text-decoration: none;">
+    <div class="ch-card-top">
+      <div class="ch-big-icon">🗑️</div>
+      <div class="ch-badges">
+        <span class="diff-badge diff-medium">LVL {{ progress.get('waste_sort', 1) }}</span>
+      </div>
+    </div>
+    <h3 class="ch-card-title">Waste Sorting</h3>
+    <p class="ch-card-desc">Quickly place items into the correct Dry, Wet, and Recyclable bins.</p>
+    <div class="ch-card-footer">
+      <span class="ch-pts-pill">+20 XP</span>
+      <button class="btn-complete-card">Play</button>
+    </div>
+  </a>
+
+  <!-- GAME 3: The Farm -->
+  <a href="{{ url_for('game_farm') }}" class="ch-card {% if level < 5 %}ch-done{% endif %}" style="text-decoration: none;">
+    <div class="ch-card-top">
+      <div class="ch-big-icon">🧑‍🌾</div>
+      <div class="ch-badges">
+        {% if level < 5 %}
+          <span class="diff-badge diff-hard">LOCKED</span>
+        {% else %}
+          <span class="diff-badge diff-easy">UNLOCKED</span>
+        {% endif %}
+      </div>
+    </div>
+    <h3 class="ch-card-title">My Farm</h3>
+    <p class="ch-card-desc">Grow your own plants and earn gold coins! {% if level < 5 %}Unlocks at Level 5.{% endif %}</p>
+    <div class="ch-card-footer">
+      <span class="ch-pts-pill">Gold Coins</span>
+      {% if level < 5 %}
+        <button class="btn-done">Locked</button>
+      {% else %}
+        <button class="btn-complete-card">Enter Farm</button>
+      {% endif %}
+    </div>
+  </a>
+
+  <!-- PLACEHOLDER GAMES -->
+  {% set placeholders = [
+    ('🧩', 'Jigsaw Puzzle', 'Assemble before vs after environment transformations.', 'Coming Soon'),
+    ('💧', 'Save Water', 'Fix leaks and turn off taps before the timer runs out.', 'Coming Soon'),
+    ('🏙️', 'City Builder', 'Balance economy vs environment in your own city.', 'Coming Soon'),
+    ('🏁', 'Live Quiz', 'Compete with friends in real-time eco-quizzes.', 'Coming Soon'),
+    ('🤔', 'Guess the Brand', 'Guess eco symbols and brands under time pressure.', 'Coming Soon'),
+    ('🧼', 'Pollution Sweeper', 'Solve interactive puzzles to clean up air and water.', 'Coming Soon')
+  ] %}
+  
+  {% for icon, title, desc, status in placeholders %}
+  <div class="ch-card" style="opacity:0.7; filter:grayscale(0.3);">
+    <div class="ch-card-top">
+      <div class="ch-big-icon">{{ icon }}</div>
+      <div class="ch-badges">
+        <span class="diff-badge diff-hard">WIP</span>
+      </div>
+    </div>
+    <h3 class="ch-card-title">{{ title }}</h3>
+    <p class="ch-card-desc">{{ desc }}</p>
+    <div class="ch-card-footer">
+      <span class="ch-pts-pill">+XP</span>
+      <button class="btn-done">{{ status }}</button>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

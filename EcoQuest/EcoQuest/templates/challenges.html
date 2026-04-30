@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Challenges{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">⚡ Eco Challenges</h1>
+    <p class="page-sub">Complete tasks to earn points and help the planet</p>
+  </div>
+  <div class="points-badge">
+    <span>⭐</span> <span id="livePoints">{{ user.points }}</span> pts
+  </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+  <button class="ftab active" data-cat="all">All</button>
+  <button class="ftab" data-cat="Nature">🌳 Nature</button>
+  <button class="ftab" data-cat="Waste">♻️ Waste</button>
+  <button class="ftab" data-cat="Transport">🚴 Transport</button>
+  <button class="ftab" data-cat="Food">🥗 Food</button>
+  <button class="ftab" data-cat="Water">💧 Water</button>
+  <button class="ftab" data-cat="Energy">💡 Energy</button>
+  <button class="ftab" data-cat="Education">📚 Education</button>
+  <button class="ftab" data-cat="Community">🤝 Community</button>
+</div>
+
+<!-- Challenges Grid -->
+<div class="challenges-grid" id="challengesGrid">
+{% for c in challenges %}
+  <div class="ch-card {% if c.id in done %}ch-done{% endif %}" data-cat="{{ c.category }}" id="card-{{ c.id }}">
+    <div class="ch-card-top">
+      <div class="ch-big-icon">{{ c.icon }}</div>
+      <div class="ch-badges">
+        <span class="diff-badge diff-{{ c.difficulty }}">{{ c.difficulty }}</span>
+        {% if c.daily %}<span class="daily-badge">📅 Daily</span>{% endif %}
+      </div>
+    </div>
+    <div class="ch-card-body">
+      <div class="ch-card-cat">{{ c.category }}</div>
+      <h3 class="ch-card-title">{{ c.title }}</h3>
+      <p class="ch-card-desc">{{ c.description }}</p>
+    </div>
+    <div class="ch-card-footer">
+      <div class="ch-pts-pill">+{{ c.points }} pts</div>
+      {% if c.id in done %}
+        <button class="btn-done" disabled>✅ Completed</button>
+      {% else %}
+        <button class="btn-complete-card" onclick="completeChallenge({{ c.id }}, this)">
+          ✓ Complete
+        </button>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Filter tabs
+document.querySelectorAll('.ftab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    document.querySelectorAll('.ch-card').forEach(card => {
+      card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+    });
+  });
+});
+
+function completeChallenge(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  fetch('/api/complete/' + id, {method:'POST'})
+    .then(r=>r.json()).then(d=>{
+      if (d.status === 'ok') {
+        const card = document.getElementById('card-' + id);
+        card.classList.add('ch-done');
+        btn.className = 'btn-done';
+        btn.textContent = '✅ Completed';
+        document.getElementById('livePoints').textContent = d.points;
+        showToast(d.message);
+      } else {
+        btn.textContent = '✓ Complete';
+        btn.disabled = false;
+        showToast(d.message);
+      }
+    });
+}
+</script>
+{% endblock %}

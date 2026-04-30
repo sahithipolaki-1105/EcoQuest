@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="profile-hero">
+  <div class="profile-avatar-big">{{ user.name[0].upper() }}</div>
+  <div class="profile-info">
+    <h1 class="profile-name">{{ user.name }}</h1>
+    <p class="profile-email">{{ user.email }}</p>
+    <div class="profile-meta">
+      <span class="meta-pill green">Lv {{ level }} Eco Warrior</span>
+      <span class="meta-pill blue">🏅 Rank #{{ rank }}</span>
+      <span class="meta-pill orange">🔥 {{ user.streak }} day streak</span>
+    </div>
+  </div>
+</div>
+
+<!-- XP Bar -->
+<div class="xp-card" style="margin-bottom:2rem">
+  <div class="xp-header">
+    <div class="xp-level-badge">Lv {{ level }}</div>
+    <span class="xp-title">Level Progress</span>
+    <span class="xp-pct">{{ xp }}%</span>
+  </div>
+  <div class="xp-bar-track">
+    <div class="xp-bar-fill" style="width:{{ xp }}%"></div>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-grid" style="margin-bottom:2rem">
+  <div class="stat-card stat-green">
+    <div class="stat-icon">⭐</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ user.points }}</div>
+      <div class="stat-label">Total Points</div>
+    </div>
+  </div>
+  <div class="stat-card stat-blue">
+    <div class="stat-icon">✅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ total_completed }}</div>
+      <div class="stat-label">Challenges</div>
+    </div>
+  </div>
+  <div class="stat-card stat-orange">
+    <div class="stat-icon">🏅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ badges_earned|length }}</div>
+      <div class="stat-label">Badges</div>
+    </div>
+  </div>
+  <div class="stat-card stat-purple">
+    <div class="stat-icon">🔥</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ user.streak }}</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- Badges -->
+  <div class="section-card">
+    <h2 class="section-title">🏆 My Badges</h2>
+    <div class="badges-grid">
+      {% for b in all_badges %}
+      <div class="badge-item {% if b.key in badges_earned %}badge-earned{% else %}badge-locked{% endif %}">
+        <div class="badge-icon">{{ b.icon }}</div>
+        <div class="badge-name">{{ b.name }}</div>
+        <div class="badge-desc">{{ b.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="section-card">
+    <h2 class="section-title">📋 Recent Activity</h2>
+    {% if recent %}
+      {% for r in recent %}
+      <div class="activity-row">
+        <div class="act-icon">{{ r.icon }}</div>
+        <div class="act-info">
+          <div class="act-name">{{ r.title }}</div>
+          <div class="act-time">{{ r.completed_at[:10] }}</div>
+        </div>
+        <div class="act-pts">+{{ r.points }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🌱</div>
+        <p>No activity yet — start a challenge!</p>
+      </div>
+    {% endif %}
+    <a href="{{ url_for('challenges') }}" class="btn-primary" style="margin-top:1rem;display:block;text-align:center">⚡ Start Challenge</a>
+  </div>
+</div>
+{% endblock %}

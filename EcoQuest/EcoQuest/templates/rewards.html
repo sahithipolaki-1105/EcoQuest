@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Rewards{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🎁 Rewards & Achievements</h1>
+    <p class="page-sub">Unlock rewards by completing eco-missions</p>
+  </div>
+  <div class="points-badge">⭐ {{ user.points }} pts</div>
+</div>
+
+<!-- Progress Summary -->
+<div class="rewards-summary">
+  <div class="rs-item">
+    <div class="rs-value">{{ rewards|selectattr('unlocked')|list|length }}</div>
+    <div class="rs-label">Unlocked</div>
+  </div>
+  <div class="rs-divider"></div>
+  <div class="rs-item">
+    <div class="rs-value">{{ rewards|length }}</div>
+    <div class="rs-label">Total</div>
+  </div>
+  <div class="rs-divider"></div>
+  <div class="rs-item">
+    <div class="rs-value">{{ ((rewards|selectattr('unlocked')|list|length / rewards|length) * 100)|int }}%</div>
+    <div class="rs-label">Complete</div>
+  </div>
+</div>
+
+<div class="rewards-progress-bar">
+  <div class="rewards-progress-fill" style="width:{{ ((rewards|selectattr('unlocked')|list|length / rewards|length) * 100)|int }}%"></div>
+</div>
+
+<!-- Rewards Grid -->
+<div class="rewards-grid">
+  {% for r in rewards %}
+  <div class="reward-card {% if r.unlocked %}reward-unlocked{% else %}reward-locked{% endif %}">
+    <div class="reward-icon-wrap">
+      <div class="reward-big-icon">{{ r.icon }}</div>
+      {% if not r.unlocked %}<div class="reward-lock">🔒</div>{% endif %}
+      {% if r.unlocked %}<div class="reward-check">✅</div>{% endif %}
+    </div>
+    <div class="reward-name">{{ r.name }}</div>
+    <div class="reward-desc">{{ r.desc }}</div>
+    {% if r.pts > 0 and not r.unlocked %}
+    <div class="reward-need">Needs {{ r.pts }} pts</div>
+    {% elif r.unlocked %}
+    <div class="reward-earned-tag">🎉 Earned!</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

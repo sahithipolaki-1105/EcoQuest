@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Waste Sorting - Level {{ level }}{% endblock %}
+
+{% block content %}
+<style>
+  .game-container { max-width: 900px; margin: 0 auto; text-align: center; }
+  .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  .level-tag { background: var(--green-100); color: var(--green-700); padding: .5rem 1rem; border-radius: 50px; font-weight: 800; font-size: 1.2rem; }
+  
+  .bins { display: flex; justify-content: space-around; gap: 1rem; margin-bottom: 3rem; }
+  .bin { 
+    width: 150px; height: 180px; 
+    border-radius: var(--radius); 
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 1rem;
+    font-weight: 800; color: #fff; font-size: 1.1rem;
+    transition: .2s; border: 4px dashed transparent;
+  }
+  .bin.drag-over { transform: scale(1.05); border-color: rgba(255,255,255,0.8); }
+  .bin-dry { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+  .bin-wet { background: linear-gradient(135deg, #10b981, #047857); }
+  .bin-recycle { background: linear-gradient(135deg, #f59e0b, #b45309); }
+  
+  .items-area { min-height: 150px; display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem; }
+  .drag-item {
+    font-size: 3rem; width: 80px; height: 80px;
+    background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow); cursor: grab; user-select: none; transition: transform .2s;
+  }
+  .drag-item:active { cursor: grabbing; transform: scale(1.1); }
+  
+  .game-over-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; }
+  .modal-content { background: #fff; padding: 2.5rem; text-align: center; border-radius: var(--radius-lg); width: 100%; max-width: 400px; animation: bounce-in .5s; }
+</style>
+
+<div class="game-container">
+  <div class="game-header">
+    <a href="{{ url_for('games') }}" class="btn-outline-sm">← Back to Games</a>
+    <div class="level-tag">Level {{ level }}</div>
+    <div class="points-badge">Score: <span id="score">0</span> / <span id="max-score">0</span></div>
+  </div>
+
+  <p class="page-sub" style="margin-bottom: 2rem;">Drag and drop the items into the correct bins!</p>
+
+  <div class="bins">
+    <div class="bin bin-dry" id="bin-dry" data-type="dry">
+      <div style="font-size:3rem; margin-bottom:1rem;">🗑️</div>
+      Dry Waste
+    </div>
+    <div class="bin bin-wet" id="bin-wet" data-type="wet">
+      <div style="font-size:3rem; margin-bottom:1rem;">🍏</div>
+      Wet Waste
+    </div>
+    <div class="bin bin-recycle" id="bin-recycle" data-type="recycle">
+      <div style="font-size:3rem; margin-bottom:1rem;">♾️</div>
+      Recyclable
+    </div>
+  </div>
+
+  <div class="items-area" id="items-area">
+    <!-- JS will populate items here -->
+  </div>
+</div>
+
+<div class="game-over-modal" id="winModal">
+  <div class="modal-content">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+    <h2 class="page-title">Level Cleared!</h2>
+    <p class="page-sub" style="margin: 1rem 0;">You sorted all the waste correctly.</p>
+    <div class="xp-level-badge" style="display:inline-block; margin-bottom:1.5rem; font-size:1.2rem; padding:.5rem 1.5rem;">+20 XP</div>
+    <div>
+      <button class="btn-primary btn-full" onclick="nextLevel()">Next Level</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentLevel = parseInt("{{ level }}");
+  let score = 0;
+  
+  const allItems = [
+    { icon: '📰', type: 'recycle', name: 'Newspaper' },
+    { icon: '🥫', type: 'recycle', name: 'Tin Can' },
+    { icon: '📦', type: 'recycle', name: 'Cardboard Box' },
+    { icon: '🍾', type: 'recycle', name: 'Glass Bottle' },
+    
+    { icon: '🍌', type: 'wet', name: 'Banana Peel' },
+    { icon: '🍎', type: 'wet', name: 'Apple Core' },
+    { icon: '🥚', type: 'wet', name: 'Egg Shells' },
+    { icon: '🍂', type: 'wet', name: 'Leaves' },
+    
+    { icon: '🥡', type: 'dry', name: 'Plastic Takeout' },
+    { icon: '🧻', type: 'dry', name: 'Used Tissue' },
+    { icon: '🛍️', type: 'dry', name: 'Plastic Bag' },
+    { icon: '🧹', type: 'dry', name: 'Dust' }
+  ];
+  
+  let activeItems = [];
+  
+  function startGame() {
+    score = 0;
+    document.getElementById('score').innerText = score;
+    const numItems = Math.min(4 + (currentLevel * 2), allItems.length);
+    document.getElementById('max-score').innerText = numItems;
+    
+    // Shuffle and pick
+    const shuffled = [...allItems].sort(() => 0.5 - Math.random());
+    activeItems = shuffled.slice(0, numItems);
+    
+    const container = document.getElementById('items-area');
+    container.innerHTML = '';
+    
+    activeItems.forEach((item, idx) => {
+      const el = document.createElement('div');
+      el.className = 'drag-item';
+      el.innerText = item.icon;
+      el.draggable = true;
+      el.dataset.type = item.type;
+      el.dataset.id = idx;
+      
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', idx);
+        setTimeout(() => el.style.opacity = '0.5', 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.style.opacity = '1';
+      });
+      
+      container.appendChild(el);
+    });
+  }
+  
+  // Setup drop zones
+  document.querySelectorAll('.bin').forEach(bin => {
+    bin.addEventListener('dragover', e => {
+      e.preventDefault();
+      bin.classList.add('drag-over');
+    });
+    bin.addEventListener('dragleave', e => {
+      bin.classList.remove('drag-over');
+    });
+    bin.addEventListener('drop', e => {
+      e.preventDefault();
+      bin.classList.remove('drag-over');
+      
+      const itemIdx = e.dataTransfer.getData('text/plain');
+      const itemEl = document.querySelector(`.drag-item[data-id="${itemIdx}"]`);
+      if(!itemEl) return;
+      
+      const itemType = itemEl.dataset.type;
+      const binType = bin.dataset.type;
+      
+      if(itemType === binType) {
+        // Correct
+        itemEl.remove();
+        score++;
+        document.getElementById('score').innerText = score;
+        showToast("Correct! " + activeItems[itemIdx].name);
+        if(score >= activeItems.length) {
+          levelComplete();
+        }
+      } else {
+        // Wrong
+        itemEl.style.transform = 'translateY(-20px)';
+        setTimeout(() => itemEl.style.transform = 'none', 200);
+        showToast("Oops, wrong bin!");
+      }
+    });
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show', 'toast-green');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function levelComplete() {
+    // Send to API
+    fetch("{{ url_for('update_game_progress') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game_id: "waste_sort", level: currentLevel })
+    }).then(r => r.json()).then(res => {
+      document.getElementById('winModal').style.display = 'flex';
+      currentLevel++;
+    });
+  }
+
+  function nextLevel() {
+    document.getElementById('winModal').style.display = 'none';
+    document.querySelector('.level-tag').innerText = "Level " + currentLevel;
+    startGame();
+  }
+
+  window.onload = startGame;
+</script>
+{% endblock %}

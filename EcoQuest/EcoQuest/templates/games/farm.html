@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}My Farm{% endblock %}
+
+{% block content %}
+<style>
+  .farm-container { max-width: 900px; margin: 0 auto; text-align: center; }
+  .farm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  
+  .gold-badge {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #fff; padding: .5rem 1.2rem; border-radius: 50px;
+    font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap:.5rem;
+    box-shadow: 0 4px 12px rgba(251,191,36,.4);
+  }
+  
+  .farm-land {
+    background: linear-gradient(180deg, #c2e59c, #64b3f4);
+    height: 400px; border-radius: var(--radius-lg);
+    position: relative; overflow: hidden; border: 4px solid var(--green-200);
+    box-shadow: var(--shadow-md); margin-bottom: 2rem;
+  }
+  
+  .ground {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+    background: #8b5a2b; border-top: 10px solid #556b2f;
+  }
+  
+  .plant-wrapper {
+    position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+    text-align: center; transition: .5s;
+  }
+  .plant-emoji { font-size: 10rem; line-height: 1; transition: .3s; display: inline-block; }
+  .plant-sad { filter: grayscale(0.5); transform: translateY(10px) rotate(5deg); }
+  
+  .sun {
+    position: absolute; top: 30px; right: 50px; font-size: 4rem;
+    animation: spin-slow 20s linear infinite;
+  }
+  .cloud {
+    position: absolute; top: 50px; left: -100px; font-size: 3.5rem; opacity: 0.8;
+    animation: drift 25s linear infinite;
+  }
+  @keyframes drift { 0%{left:-100px} 100%{left: 100%} }
+  
+  .controls { display: flex; justify-content: center; gap: 1.5rem; }
+  .farm-btn {
+    display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    background: #fff; border: 2px solid var(--green-200); border-radius: var(--radius);
+    padding: 1rem 1.5rem; cursor: pointer; transition: .2s; font-weight: 800;
+  }
+  .farm-btn:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--green-400); }
+  .farm-btn:active { transform: translateY(0); }
+  .btn-icon { font-size: 2.5rem; }
+  
+  .water-bar-wrap { width: 250px; height: 20px; background: #e2e8f0; border-radius: 50px; margin: 0 auto 1.5rem; overflow: hidden; position: relative;}
+  .water-bar-fill { height: 100%; background: #3b82f6; width: {{ state.water_level }}%; transition: 1s; }
+  
+  .watering-anim {
+    position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%);
+    font-size: 4rem; z-index: 10; opacity: 0; pointer-events: none;
+  }
+</style>
+
+<div class="farm-container">
+  <div class="farm-header">
+    <a href="{{ url_for('games') }}" class="btn-outline-sm">← Back to Games</a>
+    <h1 class="page-title">My Eco Farm</h1>
+    <div class="gold-badge"><span id="gold-amt">{{ gold_coins }}</span> 🪙</div>
+  </div>
+
+  <div class="water-bar-wrap" title="Water Level">
+    <div class="water-bar-fill" id="water-bar"></div>
+    <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.5);">Thirst Level</span>
+  </div>
+
+  <div class="farm-land">
+    <div class="sun">☀️</div>
+    <div class="cloud">☁️</div>
+    <div class="ground"></div>
+    
+    <div class="watering-anim" id="water-fx">🌧️</div>
+    
+    <div class="plant-wrapper">
+      <div id="plant-gfx" class="plant-emoji {% if state.health == 'sad' or state.water_level < 30 %}plant-sad{% endif %}">
+        {% if state.growth_stage == 0 %}🌱
+        {% elif state.growth_stage == 1 %}🌿
+        {% elif state.growth_stage == 2 %}🪴
+        {% else %}🌳{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="farm-btn" onclick="doAction('water')">
+      <span class="btn-icon">💧</span>
+      Water Plant<br><small style="color:var(--green-600)">+5 Gold</small>
+    </button>
+    <button class="farm-btn" onclick="doAction('grow')">
+      <span class="btn-icon">⏳</span>
+      Wait Time<br><small style="color:var(--gray-500)">Grows plant</small>
+    </button>
+    <button class="farm-btn" onclick="doAction('fertilize')">
+      <span class="btn-icon">🧪</span>
+      Fertilizer<br><small style="color:var(--orange-500)">-10 Gold</small>
+    </button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function doAction(act) {
+    if(act === 'water') {
+      const fx = document.getElementById('water-fx');
+      fx.style.animation = 'none';
+      fx.offsetHeight; /* trigger reflow */
+      fx.style.opacity = '1';
+      fx.style.transform = 'translate(-50%, -20px)';
+      setTimeout(() => { fx.style.opacity = '0'; fx.style.transform = 'translate(-50%, 0)'; }, 1000);
+    }
+    
+    fetch("{{ url_for('farm_action') }}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: act })
+    }).then(r => r.json()).then(res => {
+      if(res.status === 'ok') {
+        document.getElementById('gold-amt').innerText = res.gold;
+        if(res.message) showToast(res.message);
+        
+        // Update state
+        document.getElementById('water-bar').style.width = res.state.water_level + '%';
+        const p = document.getElementById('plant-gfx');
+        if(res.state.water_level < 30 || res.state.health === 'sad') p.classList.add('plant-sad');
+        else p.classList.remove('plant-sad');
+        
+        let icon = '🌱';
+        if(res.state.growth_stage === 1) icon = '🌿';
+        if(res.state.growth_stage === 2) icon = '🪴';
+        if(res.state.growth_stage >= 3) icon = '🌳';
+        p.innerText = icon;
+      } else {
+        showToast(res.message); // error
+      }
+    });
+  }
+  
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show', 'toast-green');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+</script>
+{% endblock %}
