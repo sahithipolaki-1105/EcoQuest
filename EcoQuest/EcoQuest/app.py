@@ -411,9 +411,110 @@ def games():
     xp  = xp_progress(u['points'])
     return render_template('games.html', user=u, progress=prog_dict, level=lvl, xp=xp)
 
+
 @app.route('/api/games/progress', methods=['POST'])
 @login_required
 def update_game_progress():
+    uid = session['user_id']
+    data = request.get_json(silent=True) or {}
+
+    game_id = data.get('game_id')
+    level = data.get('level')
+
+    allowed_games = {'memory_match', 'waste_sort'}
+
+    if game_id not in allowed_games:
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid game.'
+        }), 400
+
+    if type(level) is not int or not 1 <= level <= 100:
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid level.'
+        }), 400
+
+    db = get_db()
+
+    try:
+        db.execute('BEGIN IMMEDIATE')
+
+        curr = db.execute(
+            '''SELECT max_level FROM game_progress
+               WHERE user_id=? AND game_id=?''',
+            (uid, game_id)
+        ).fetchone()
+
+        current_level = curr['max_level'] if curr else 1
+
+        if level < current_level:
+            db.rollback()
+            return jsonify({
+                'status': 'already',
+                'message': 'Level already rewarded.'
+            })
+
+        if level > current_level:
+            db.rollback()
+            return jsonify({
+                'status': 'error',
+                'message': 'Complete the previous level first.'
+            }), 400
+
+        if curr:
+            db.execute(
+                '''UPDATE game_progress
+                   SET max_level=?
+                   WHERE user_id=? AND game_id=?''',
+                (level + 1, uid, game_id)
+            )
+        else:
+            db.execute(
+                '''INSERT INTO game_progress
+                   (user_id, game_id, max_level)
+                   VALUES (?, ?, ?)''',
+                (uid, game_id, level + 1)
+            )
+
+        db.execute(
+            '''UPDATE users
+               SET points=points+20, last_activity=?
+               WHERE id=?''',
+            (date.today().isoformat(), uid)
+        )
+
+        check_badges(uid, db)
+
+        u = db.execute(
+            'SELECT points FROM users WHERE id=?',
+            (uid,)
+        ).fetchone()
+
+        db.commit()
+
+        lvl = level_for_points(u['points'])
+        xp = xp_progress(u['points'])
+
+        return jsonify({
+            'status': 'ok',
+            'points': u['points'],
+            'level': lvl,
+            'xp': xp,
+            'message': '+20 XP!'
+        })
+
+    except Exception:
+        db.rollback()
+        app.logger.exception('Game progress update failed')
+        return jsonify({
+            'status': 'error',
+            'message': 'Unable to update game progress.'
+        }), 500
+
+    finally:
+        db.close()
+
     uid = session['user_id']
     data = request.json
     game_id = data.get('game_id')
