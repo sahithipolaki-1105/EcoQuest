@@ -1,11 +1,33 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import sqlite3, hashlib, os
+import sqlite3
+import hashlib
+import hmac
+import os
+
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
 from datetime import datetime, date
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = 'sih25009-eco-secret-key-2025'
-DB = 'instance/eco.db'
+
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY',
+    'development-only-secret-key'
+)
+
+app.config['DEBUG'] = (
+    os.environ.get('FLASK_DEBUG', '0') == '1'
+)
+
+DB = os.environ.get(
+    'DATABASE_PATH',
+    os.path.join(app.instance_path, 'eco.db')
+)
+
+os.makedirs(os.path.dirname(os.path.abspath(DB)), exist_ok=True)
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 def get_db():
@@ -13,7 +35,24 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
+def hash_pw(pw):
+    return generate_password_hash(pw)
+
+
+def verify_password(stored_password, entered_password):
+    # Check passwords created using Werkzeug
+    if stored_password.startswith(('scrypt:', 'pbkdf2:')):
+        return check_password_hash(stored_password, entered_password), False
+
+    # Support existing SHA-256 passwords temporarily
+    legacy_hash = hashlib.sha256(
+        entered_password.encode()
+    ).hexdigest()
+
+    if hmac.compare_digest(stored_password, legacy_hash):
+        return True, True
+
+    return False, False
 
 def login_required(f):
     @wraps(f)
@@ -181,11 +220,29 @@ def login():
     error = None
     if request.method == 'POST':
         email = request.form['email']
-        pw    = hash_pw(request.form['password'])
-        db = get_db()
-        u = db.execute('SELECT * FROM users WHERE email=? AND password=?',(email,pw)).fetchone()
-        db.close()
-        if u:
+        pw = request.form['password']
+db = get_db()
+
+u = db.execute(
+    'SELECT * FROM users WHERE email=?',
+    (email,)
+).fetchone()
+
+if u:
+    valid, needs_upgrade = verify_password(
+        u['password'], pw
+    )
+
+    if valid and needs_upgrade:
+        db.execute(
+            'UPDATE users SET password=? WHERE id=?',
+            (hash_pw(pw), u['id'])
+        )
+        db.commit()
+
+db.close()
+
+if u and valid:
             session['user_id'] = u['id']
             session['user_name'] = u['name']
             return redirect(url_for('dashboard'))
